@@ -1,10 +1,13 @@
 from sys import exit
 from pydantic import ValidationError
-from models import FunctionDefinition, Prompt
+from .models import FunctionDefinition, Prompt
 from json import load, JSONDecodeError
 
 
 class Parser:
+
+    # def parse_cli_args()
+
     @staticmethod
     def parse_func_file(path: str) -> list[FunctionDefinition]:
         functions: list[FunctionDefinition] = []
@@ -27,14 +30,13 @@ class Parser:
             exit(1)
 
     @staticmethod
-    def parse_input_file(path: str) -> list[Prompt]:
+    def parse_prompt_file(path: str) -> list[Prompt]:
         prompts: list[Prompt] = []
 
         try:
             with open(path) as file:
                 data =  load(file)
                 prompts = [Prompt(**prompt) for prompt in data]
-                print(data[2])
                 return prompts
         
         except IOError as e:

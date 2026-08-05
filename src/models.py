@@ -10,23 +10,27 @@ class FunctionDefinition(BaseModel):
 
     @model_validator(mode="after")
     def validate_types(self) -> "FunctionDefinition":
-        allowed_types = [
-            "number", "string", "integer",
-            "array", "object"
-        ]
         for k in self.parameters.keys():
             if len(self.parameters[k]) != 1:
                 raise ValueError(
                     f"Parameter '{k}' has invalid structure: expected only 'type' field"
                 )
-            if self.parameters[k]["type"] not in allowed_types:
+            try :
+                self.parameters[k]["type"]
+            except:
                 raise ValueError(
-                    f"Parameter '{k}' has invalid type: '{self.parameters[k]['type']}'"
+                    f"The key in parameters must be exactly 'type'"
                 )
-        
-        if self.returns["type"] not in allowed_types:
-            raise ValueError("Invalide return type")
-        
+        if len(self.returns) != 1:
+            raise ValueError(
+                "The returns should conatain only one type"
+            )
+        try :
+            self.returns["type"]
+        except:
+            raise ValueError(
+                f"The key in returns must be exactly 'type'"
+            )
         return self
 
 class Prompt(BaseModel):
