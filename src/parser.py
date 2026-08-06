@@ -15,6 +15,7 @@ class Parser:
             with open(path) as file:
                 data = load(file)
                 functions = [FunctionDefinition(**func) for func in data]
+                # none_function
                 return functions
 
         except IOError as e:
@@ -30,14 +31,14 @@ class Parser:
             exit(1)
 
     @staticmethod
-    def parse_prompt_file(path: str) -> list[Prompt]:
+    def parse_prompt_file(path: str) -> list[str]:
         prompts: list[Prompt] = []
 
         try:
             with open(path) as file:
                 data =  load(file)
                 prompts = [Prompt(**prompt) for prompt in data]
-                return prompts
+                return [p.prompt for p in prompts if p.prompt != ""]
         
         except IOError as e:
             print(f"Error occured while opening file {path}: {e}")
