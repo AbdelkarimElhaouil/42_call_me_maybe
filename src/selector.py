@@ -14,18 +14,18 @@ class Selector:
             "integer": {
                 "allow": self.__get_allowed_type_tokens("integer"),
                 "stop": [
-                    self.model.encode(c).tolist[0][0] for c in ["},"]
+                    self.model.encode(c).tolist()[0][0] for c in "},"
                 ]
             },
             "number":{
                 "allow": self.__get_allowed_type_tokens("number"),
                 "stop": [
-                    self.model.encode(c).tolist[0][0] for c in ["},"]
+                    self.model.encode(c).tolist()[0][0] for c in "},"
                 ]
             },
             "boolean": self.__get_allowed_type_tokens("boolean"),
         }
-        self.func_names_tokenized = self.__encode_available_func_names()
+        self.func_names_tokenized = self.__encode_available_func_names() # lust[list[int]]
         # self.allowed_number_tokens = self.__get_allowed_type_tokens("number")
         # self.allowed_boolean_tokens = self.__get_allowed_type_tokens("boolean")
         # self.allowed_int_tokens = self.__get_allowed_type_tokens("integer")
@@ -33,7 +33,7 @@ class Selector:
     def __get_allowed_type_tokens(self, type: str) -> list[int]:
         valid_set: set = {}
         if type.lower() == "boolean":
-            return [self.model.encode(t)[0][0] for t in ["true", "false"]]
+            return [self.model.encode(t).tolist()[0][0] for t in ["true", "false"]] # [[1]] = [[1]]
         if type.lower() == "number":
             valid_set = set("0123456789.-")
         elif type.lower() == "integer":
@@ -107,9 +107,8 @@ class Selector:
         return None
 
 
-    def __construct_param_prompt(self, user_prompt: str, param_name: str, param_type: str) -> str:
-        prompt = f"Extract ONLY the value of parameter from the user request.\n"
-        prompt += f"Output ONLY the value, nothing else.\n"
+    def __construct_param_prompt(self, user_prompt: str) -> str:
+        prompt = f"Extract the value of parameter from the user request.\n"
         prompt += f"User request: \"{user_prompt}\"\n"
         return prompt
 
@@ -131,19 +130,32 @@ class Selector:
                 res = self.model.decode(generated_ids)
                 print("RESULT:", "="*100, "\n", user_prompt, "->", res, "\n", "="*100)
                 return res
-        
+    
+
+    def generate_json(self):
+        for p in self.prompts:
+            func = self.__select_func_name(p)
+            params = self.__extracte_func_params(func)
+            print(params)
+            res = self.__select_params_values(p, params)
+            print(res)
+            d = {
+                "name": func
+            }
+
+
     def __select_params_values(
             self, user_prompt: str, params: dict[str, str]
         ) -> dict[str, str]:
-        prompt = self.__construct_param_prompt()
-        prompt_ids: list[int] = self.model.encode(prompt).tolist[0]
+        prompt = self.__construct_param_prompt(user_prompt)
+        prompt_ids: list[int] = self.model.encode(prompt).tolist()[0]
         result = {}
         for p in params.keys():
-            line_1 += f"\nParameter name: {p} of type {params[p]}\n"
-            line_2 += f"Parameter value: "
-            prompt_ids.extend(self.model.encode(line_1 + line_2).tolist[0])
+            line_1 = f"\nParameter name: {p}"
+            line_2 = f"\nParameter value: "
+            prompt_ids.extend(self.model.encode(line_1 + line_2).tolist()[0])
             param_type = params[p]
-            if param_type == "integer":
+            if param_type == "number":
                 gen = self.__extract_int_value(prompt_ids)
                 try:
                     val = int(self.model.decode(gen))
@@ -151,8 +163,9 @@ class Selector:
                     print(f"Error: {e}")
                     exit(1)
                 result.update({p:val})
-                prompt_ids.extend(gen)
-
+                print("*"*80, self.model.decode(prompt_ids), "\n", "*"*80)
+                # prompt_ids.extend(gen)
+        return result
             # elif param_type == "number":
             #     gen = self.__extract_int_value(prompt)
             #     try:
@@ -178,20 +191,30 @@ class Selector:
 
 
     def __extract_int_value(self, prompt_ids: list[int]) -> list[int]:
-        allowed = self.__allowed_tokens["integer"]["allow"]
-        stopping = self.__allowed_tokens["integer"]["stop"]
-        all_tokens = allowed + stopping
+        allow_tokens = self.__allowed_tokens["integer"]["allow"]
+        stop_tokens = self.__allowed_tokens["integer"]["stop"]
+        sign_check = [
+            self.model.encode(c).tolist()[0][0] for c in [" ", " -"]
+        ]
+        state = 1
         gen_ids = []
         while True:
+            if  state:
+                allowed = sign_check
+                state = 0
+            else:
+                allowed = allow_tokens + stop_tokens
             logits = self.model.get_logits_from_input_ids(prompt_ids)
-            chosen_token = self.__choose_max_token(logits, all_tokens)
+            chosen_token = self.__choose_max_token(logits, allowed)
             token_decoded = self.model.decode(chosen_token)
-            if token_decoded in stopping:
-                return gen_ids
+            print("*"*80, self.model.decode(prompt_ids), "\n", "*"*80)
+            prompt_ids.append(chosen_token)
+            if token_decoded in ",}":
+                break
             gen_ids.append(chosen_token)
+        return gen_ids
 
-
-    def extracte_func_params(self, func_name: str) -> dict[str, str]:
+    def __extracte_func_params(self, func_name: str) -> dict[str, str]:
         params = {}
         for f in self.functions:
             if f.name == func_name:
