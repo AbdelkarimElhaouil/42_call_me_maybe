@@ -7,5 +7,5 @@ if __name__ == "__main__":
     ps = Parser.parse_prompt_file(prompt_file)
     fs = Parser.parse_func_file(func_file)
     s = Selector(ps, fs)
-    s.select_func_name()
-    
+    s.get_allowed_type_tokens("string")
+    # print(s.extracte_func_params("fn_add_numbers"))
