@@ -14,13 +14,13 @@ class Selector:
             "integer": {
                 "allow": self.__get_allowed_type_tokens("integer"),
                 "stop": [
-                    self.model.encode(c).tolist()[0][0] for c in "},"
+                    self.model.encode(c).tolist()[0][0] for c in "},.\n"
                 ]
             },
             "number":{
                 "allow": self.__get_allowed_type_tokens("number"),
                 "stop": [
-                    self.model.encode(c).tolist()[0][0] for c in "},"
+                    self.model.encode(c).tolist()[0][0] for c in "},\n"
                 ]
             },
             "boolean": self.__get_allowed_type_tokens("boolean"),
@@ -150,32 +150,21 @@ class Selector:
         prompt = self.__construct_param_prompt(user_prompt)
         prompt_ids: list[int] = self.model.encode(prompt).tolist()[0]
         result = {}
+    
         for p in params.keys():
             line_1 = f"\nParameter name: {p}"
             line_2 = f"\nParameter value: "
             prompt_ids.extend(self.model.encode(line_1 + line_2).tolist()[0])
             param_type = params[p]
-            if param_type == "number":
-                gen = self.__extract_int_value(prompt_ids)
-                try:
-                    val = int(self.model.decode(gen))
-                except ValueError as e:
-                    print(f"Error: {e}")
-                    exit(1)
+            if param_type == "integer":
+                val = self.__extract_int_value(prompt_ids)
                 result.update({p:val})
                 print("*"*80, self.model.decode(prompt_ids), "\n", "*"*80)
-                # prompt_ids.extend(gen)
+        # return result
+            elif param_type == "number":
+                val = self.__extract_float_value(prompt_ids)
+                result.update({p:val})
         return result
-            # elif param_type == "number":
-            #     gen = self.__extract_int_value(prompt)
-            #     try:
-            #         val = float(self.model.decode(gen))
-            #     except ValueError as e:
-            #         print(f"Error: {e}")
-            #         exit(1)
-            #     prompt_ids.extend(gen)
-            #     result.update({p:val})
-
             # elif param_type == "boolean":
             #     gen = self.__extract_bool_value(prompt)
             #     val = self.model.decode(gen)
@@ -188,31 +177,76 @@ class Selector:
             #     prompt_ids.extend(gen)
             
             # prompt_ids.extend
-
-
-    def __extract_int_value(self, prompt_ids: list[int]) -> list[int]:
-        allow_tokens = self.__allowed_tokens["integer"]["allow"]
-        stop_tokens = self.__allowed_tokens["integer"]["stop"]
-        sign_check = [
+    
+    def __extract_float_value(self, prompt_ids: list[int]) -> int:
+        allow_tokens = self.__allowed_tokens["number"]["allow"]
+        stop_tokens = self.__allowed_tokens["number"]["stop"]
+        sign_tokens = [
             self.model.encode(c).tolist()[0][0] for c in [" ", " -"]
         ]
         state = 1
+        point_appearance = 0
         gen_ids = []
         while True:
             if  state:
-                allowed = sign_check
+                allowed = sign_tokens
                 state = 0
             else:
                 allowed = allow_tokens + stop_tokens
             logits = self.model.get_logits_from_input_ids(prompt_ids)
             chosen_token = self.__choose_max_token(logits, allowed)
             token_decoded = self.model.decode(chosen_token)
-            print("*"*80, self.model.decode(prompt_ids), "\n", "*"*80)
+
+            if token_decoded == ".":
+                point_appearance += 1
+            
+            if point_appearance == 2:
+                prompt_ids.append(chosen_token)
+                break
+
+            print("*"*80, self.model.decode(prompt_ids), "\n")
             prompt_ids.append(chosen_token)
-            if token_decoded in ",}":
+            if chosen_token in stop_tokens:
                 break
             gen_ids.append(chosen_token)
-        return gen_ids
+
+        try:
+            val = float(self.model.decode(gen_ids))
+        except ValueError as e:
+                print(f"Error: {e}")
+                exit(1)
+        return val
+
+
+    def __extract_int_value(self, prompt_ids: list[int]) -> int:
+        allow_tokens = self.__allowed_tokens["integer"]["allow"]
+        stop_tokens = self.__allowed_tokens["integer"]["stop"]
+        sign_tokens = [
+            self.model.encode(c).tolist()[0][0] for c in [" ", " -"]
+        ]
+        state = 1
+        gen_ids = []
+        while True:
+            if  state:
+                allowed = sign_tokens
+                state = 0
+            else:
+                allowed = allow_tokens + stop_tokens
+            logits = self.model.get_logits_from_input_ids(prompt_ids)
+            chosen_token = self.__choose_max_token(logits, allowed)
+            token_decoded = self.model.decode(chosen_token)
+            print("*"*80, self.model.decode(prompt_ids), "\n")
+            prompt_ids.append(chosen_token)
+            if chosen_token in stop_tokens:
+                break
+            gen_ids.append(chosen_token)
+
+        try:
+            val = int(self.model.decode(gen_ids))
+        except ValueError as e:
+                print(f"Error: {e}")
+                exit(1)
+        return val
 
     def __extracte_func_params(self, func_name: str) -> dict[str, str]:
         params = {}
