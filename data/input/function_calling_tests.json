@@ -1,6 +1,12 @@
 [
   {
-    "prompt": "what is sum of +-32435.789 and +412365"
+    "prompt": "What is the sum of 2 and 3?"
+  },
+  {
+    "prompt": "What is the sum of 265 and 345?"
+  },
+  {
+    "prompt": "say hello"
   }
 ]
 

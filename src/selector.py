@@ -23,7 +23,9 @@ class Selector:
                     self.model.encode(c).tolist()[0][0] for c in "},\n"
                 ]
             },
-            "boolean": self.__get_allowed_type_tokens("boolean"),
+            "boolean": {
+                "allow": self.__get_allowed_type_tokens("boolean")
+            },
         }
         self.func_names_tokenized = self.__encode_available_func_names() # lust[list[int]]
         # self.allowed_number_tokens = self.__get_allowed_type_tokens("number")
@@ -35,13 +37,9 @@ class Selector:
         if type.lower() == "boolean":
             return [self.model.encode(t).tolist()[0][0] for t in ["true", "false"]] # [[1]] = [[1]]
         if type.lower() == "number":
-            valid_set = set("0123456789.-")
+            valid_set = set("0123456789.")
         elif type.lower() == "integer":
-            valid_set = set("0123456789-")
-        # else :
-        #     valid_set = set(
-        #         "."
-        #     )
+            valid_set = set("0123456789")
         allowed_tokens = []
         for c in valid_set:
             token = self.model.encode(c).tolist()[0][0]
@@ -138,10 +136,12 @@ class Selector:
             params = self.__extracte_func_params(func)
             print(params)
             res = self.__select_params_values(p, params)
-            print(res)
             d = {
-                "name": func
+                "prompt": p,
+                "name": func,
+                "parameters": res
             }
+            print(d)
 
 
     def __select_params_values(
@@ -156,27 +156,44 @@ class Selector:
             line_2 = f"\nParameter value: "
             prompt_ids.extend(self.model.encode(line_1 + line_2).tolist()[0])
             param_type = params[p]
+    
             if param_type == "integer":
                 val = self.__extract_int_value(prompt_ids)
                 result.update({p:val})
                 print("*"*80, self.model.decode(prompt_ids), "\n", "*"*80)
-        # return result
+
             elif param_type == "number":
                 val = self.__extract_float_value(prompt_ids)
                 result.update({p:val})
+            elif param_type == "boolean":
+                val = self.__extract_bool_value(prompt_ids)
+                result.update({p: val})
+            else :
+                val = self.__extract_str_value(prompt_ids)
+                result.update({p: val})
+
         return result
-            # elif param_type == "boolean":
-            #     gen = self.__extract_bool_value(prompt)
-            #     val = self.model.decode(gen)
-            #     result.update({p: val})
-            #     prompt_ids.extend(gen)
-            # else :
-            #     gen = self.__extract_str_value(prompt)
-            #     val = self.model.decode(gen)
-            #     result.update({p: val})
-            #     prompt_ids.extend(gen)
-            
-            # prompt_ids.extend
+    
+    def __extract_str_value(self, prompt_ids: list[int]) -> str:
+        prefix = self.model.encode("\"").tolist()[0]
+        prompt_ids.extend(prefix)
+        gen_ids = []
+        while True:
+            logits = self.model.get_logits_from_input_ids(prompt_ids)
+            chosen_token = argmax(logits)
+            token_decoded = self.model.decode(chosen_token)
+            prompt_ids.append(chosen_token)
+            if "\"" in token_decoded:
+                return self.model.decode(gen_ids)
+            gen_ids.append(chosen_token)
+
+    def __extract_bool_value(self, prompt_ids: list[int]) -> bool:
+        allow_tokens = self.__allowed_tokens["boolean"]["allow"]
+
+        logits = self.model.get_logits_from_input_ids(prompt_ids)
+        chosen_token = self.__choose_max_token(logits, allow_tokens)
+        prompt_ids.append(chosen_token)
+        return self.model.decode(chosen_token)
     
     def __extract_float_value(self, prompt_ids: list[int]) -> int:
         allow_tokens = self.__allowed_tokens["number"]["allow"]
