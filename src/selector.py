@@ -130,18 +130,21 @@ class Selector:
                 return res
     
 
-    def generate_json(self):
+    def generate_answers(self) -> list[dict[str, str]]:
+        result = []
         for p in self.prompts:
-            func = self.__select_func_name(p)
-            params = self.__extracte_func_params(func)
-            print(params)
-            res = self.__select_params_values(p, params)
-            d = {
-                "prompt": p,
-                "name": func,
-                "parameters": res
-            }
-            print(d)
+            func_name = self.__select_func_name(p)
+            params = self.__extracte_func_params(func_name)
+            params_values = self.__select_params_values(p, params)
+            result.append(
+                {
+                    "prompt": p,
+                    "name": func_name,
+                    "parameters": params_values
+                }
+            )
+        return result
+
 
 
     def __select_params_values(
@@ -272,10 +275,3 @@ class Selector:
                 for param_name in f.parameters:
                     params.update({param_name:f.parameters[param_name]["type"]})
                 return params
-
-
-    def select_params(self):
-        for c in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ":
-            print(self.model.enco).tolist()[0][0]
-        print(self.model.encode("true").tolist()[0][0])
-        print(self.model.encode("false"))

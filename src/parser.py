@@ -6,7 +6,31 @@ from json import load, JSONDecodeError
 
 class Parser:
 
-    # def parse_cli_args()
+    @staticmethod
+    def parse_cli_args(argv: list[str]) -> dict[str, str]:
+        argv_len = len(argv)
+        valid_args = ["--input", "--output", "--functions_definition"]
+        default_result = {
+                "--input": "data/input/function_calling_tests.json",
+                "--output": "data/output/function_calling_results.json",
+                "--functions_definition": "data/input/function_calling_tests.json"
+        }
+        if argv_len == 1:
+            return default_result 
+        else:
+            for i in range(1, argv_len):
+                if argv[i] in valid_args and argv_len > i + 1:
+                    default_result.update(
+                        {argv[i]: argv[i+1]}
+                    )
+                    i += 1
+                else:
+                    print("Error: please provide valid command line arguments")
+                    print("Usage: uv run python -m src", end="")
+                    print("[--functions_definition <function_definition_file>]", end="")
+                    print("[--input <input_file>] [--output <output_file>]")
+                    exit(1)
+
 
     @staticmethod
     def parse_func_file(path: str) -> list[FunctionDefinition]:
