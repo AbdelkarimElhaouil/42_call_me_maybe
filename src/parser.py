@@ -13,23 +13,24 @@ class Parser:
         default_result = {
                 "--input": "data/input/function_calling_tests.json",
                 "--output": "data/output/function_calling_results.json",
-                "--functions_definition": "data/input/function_calling_tests.json"
+                "--functions_definition": "data/input/functions_definition.json"
         }
-        if argv_len == 1:
-            return default_result 
-        else:
-            for i in range(1, argv_len):
+        if argv_len > 1:
+            i = 1
+            while i < argv_len:
                 if argv[i] in valid_args and argv_len > i + 1:
+
                     default_result.update(
                         {argv[i]: argv[i+1]}
                     )
-                    i += 1
+                    i += 2
                 else:
                     print("Error: please provide valid command line arguments")
                     print("Usage: uv run python -m src", end="")
                     print("[--functions_definition <function_definition_file>]", end="")
                     print("[--input <input_file>] [--output <output_file>]")
                     exit(1)
+        return default_result
 
 
     @staticmethod
@@ -62,7 +63,11 @@ class Parser:
             with open(path) as file:
                 data =  load(file)
                 prompts = [Prompt(**prompt) for prompt in data]
-                return [p.prompt for p in prompts if p.prompt != ""]
+                valid_prompts = [p.prompt for p in prompts if p.prompt.strip() != ""]
+                if not valid_prompts:
+                    print("All prompts are vide: please provide a valid prompt.")
+                    exit(1)
+                return valid_prompts
         
         except IOError as e:
             print(f"Error occured while opening file {path}: {e}")

@@ -4,7 +4,9 @@ from .utils import dump_result
 from sys import argv
 
 if __name__ == "__main__":
+    print(argv)
     paths = Parser.parse_cli_args(argv)
+    print(paths)
     func_file = paths["--functions_definition"]
     prompt_file = paths["--input"]
     output_file = paths["--output"]

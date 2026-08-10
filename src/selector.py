@@ -27,10 +27,8 @@ class Selector:
                 "allow": self.__get_allowed_type_tokens("boolean")
             },
         }
-        self.func_names_tokenized = self.__encode_available_func_names() # lust[list[int]]
-        # self.allowed_number_tokens = self.__get_allowed_type_tokens("number")
-        # self.allowed_boolean_tokens = self.__get_allowed_type_tokens("boolean")
-        # self.allowed_int_tokens = self.__get_allowed_type_tokens("integer")
+        self.func_names_tokenized = self.__encode_available_func_names()
+
 
     def __get_allowed_type_tokens(self, type: str) -> list[int]:
         valid_set: set = {}
@@ -56,11 +54,11 @@ class Selector:
         #     "Available functions:\n"
         # )
         prompt = "Task: Map the user request to the correct function name.\n\n"
+        prompt += "If NO function can map it, select fn_null_function.\n"
         for f in self.functions:
             prompt += f"- {f.name}: {f.description}\n"
-        prompt += "- fn_null_function: choose it when no function matches the request.\n\n"
         prompt += f"User request: {user_prompt}\n\n"
-        prompt += "Function to map:\n"
+        prompt += "Function to map: \n"
 
         return prompt
 
@@ -87,12 +85,12 @@ class Selector:
     def __choose_max_token(self, logits: list[float], allowed_tokens_ids: list[int]) -> int:
         candidates = {str(id):logits[id] for id in allowed_tokens_ids}
         max_token = -inf
+        print("+" * 30, "Tokens with their logits", "+" * 30)
         for k in candidates.keys():
             print(self.model.decode(int(k)), "=", candidates[k])
             if candidates[k] > max_token:
                 id = k
                 max_token = candidates[k]
-        print("-"*100)
         return int(id)
 
 
@@ -105,9 +103,15 @@ class Selector:
         return None
 
 
-    def __construct_param_prompt(self, user_prompt: str) -> str:
-        prompt = f"Extract the value of parameter from the user request.\n"
-        prompt += f"User request: \"{user_prompt}\"\n"
+    def __construct_param_prompt(self, user_prompt: str, params: dict[str, str]) -> str:
+        prompt = f"Extract the value of parameters from the request, "
+        prompt += "Pay all your attentio to the request and choose precisely the value\n"
+        prompt += "EXAMPLES:\n"
+        prompt += "Request: Substitute the word 'cat' with 'dog' in 'The cat sat on the mat'\n"
+        prompt += "fn_substitute(target=\"cat\", replacement=\"dog\")"
+        prompt += "Request: Book a flight to Paris for next Friday\n"
+        prompt += "fn_book_flight(destination=\"Paris\")"
+        prompt += f"Request: {user_prompt}\n"
         return prompt
 
 
@@ -126,7 +130,7 @@ class Selector:
             generated_func_name = self.__get_generated_func_name(self.func_names_tokenized, generated_ids)
             if generated_func_name:
                 res = self.model.decode(generated_ids)
-                print("RESULT:", "="*100, "\n", user_prompt, "->", res, "\n", "="*100)
+                print("RESULT:\n", "\n", user_prompt, "--->", res)
                 return res
     
 
@@ -134,8 +138,11 @@ class Selector:
         result = []
         for p in self.prompts:
             func_name = self.__select_func_name(p)
-            params = self.__extracte_func_params(func_name)
-            params_values = self.__select_params_values(p, params)
+            if func_name == "fn_null_function":
+                params_values = {}
+            else:
+                params = self.__extracte_func_params(func_name)
+                params_values = self.__select_params_values(p, params)
             result.append(
                 {
                     "prompt": p,
@@ -150,7 +157,7 @@ class Selector:
     def __select_params_values(
             self, user_prompt: str, params: dict[str, str]
         ) -> dict[str, str]:
-        prompt = self.__construct_param_prompt(user_prompt)
+        prompt = self.__construct_param_prompt(user_prompt, params)
         prompt_ids: list[int] = self.model.encode(prompt).tolist()[0]
         result = {}
     
@@ -187,7 +194,9 @@ class Selector:
             token_decoded = self.model.decode(chosen_token)
             prompt_ids.append(chosen_token)
             if "\"" in token_decoded:
-                return self.model.decode(gen_ids)
+                val = self.model.decode(gen_ids)
+                val += token_decoded.split(sep="\"")[0]
+                return val.strip()
             gen_ids.append(chosen_token)
 
     def __extract_bool_value(self, prompt_ids: list[int]) -> bool:
@@ -224,7 +233,7 @@ class Selector:
                 prompt_ids.append(chosen_token)
                 break
 
-            print("*"*80, self.model.decode(prompt_ids), "\n")
+            print(self.model.decode(prompt_ids), "\n")
             prompt_ids.append(chosen_token)
             if chosen_token in stop_tokens:
                 break
