@@ -9,7 +9,6 @@ class FunctionDefinition(BaseModel):
 
     @model_validator(mode="after")
     def validate_types(self) -> "FunctionDefinition":
-        print(version)
         valid_types  = ["number", "integer", "object", "boolean", "string"]
         for k in self.parameters.keys():
             if len(self.parameters[k]) != 1:
