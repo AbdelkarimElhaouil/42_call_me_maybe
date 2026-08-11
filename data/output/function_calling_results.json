@@ -4,7 +4,7 @@
         "name": "fn_add_numbers",
         "parameters": {
             "a": 2.0,
-            "b": 3.0
+            "b": "3"
         }
     },
     {
@@ -12,7 +12,7 @@
         "name": "fn_add_numbers",
         "parameters": {
             "a": 265.0,
-            "b": 345.0
+            "b": "345"
         }
     },
     {

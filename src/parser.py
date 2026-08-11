@@ -40,7 +40,6 @@ class Parser:
             with open(path) as file:
                 data = load(file)
                 functions = [FunctionDefinition(**func) for func in data]
-                # none_function
                 return functions
 
         except IOError as e:
@@ -49,6 +48,14 @@ class Parser:
 
         except ValidationError as e:
             print(f"Validation error: {e}")
+            exit(1)
+        
+        except KeyError as e:
+            print(e)
+            exit(1)
+        
+        except ValueError as e:
+            print(e)
             exit(1)
 
         except JSONDecodeError as e:

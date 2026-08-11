@@ -7,11 +7,11 @@
         "type": "number"
       },
       "b": {
-        "type": "number"
+        "type": "object"
       }
     },
     "returns": {
-      "type": "number"
+      "type": "integer"
     }
   },
   {

@@ -1,8 +1,7 @@
-from pydantic import BaseModel, ValidationError, model_validator, ConfigDict, Field
+from pydantic import BaseModel, model_validator, ConfigDict, Field, version
 
 class FunctionDefinition(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    model_config = ConfigDict(str_strip_whitespace=True)
+    model_config = ConfigDict(extra="forbid", str_min_length=1)
     name: str = Field(min_length=1)
     description: str
     parameters: dict[str, dict[str, str]]
@@ -10,6 +9,8 @@ class FunctionDefinition(BaseModel):
 
     @model_validator(mode="after")
     def validate_types(self) -> "FunctionDefinition":
+        print(version)
+        valid_types  = ["number", "integer", "object", "boolean", "string"]
         for k in self.parameters.keys():
             if len(self.parameters[k]) != 1:
                 raise ValueError(
@@ -17,10 +18,13 @@ class FunctionDefinition(BaseModel):
                 )
             try :
                 self.parameters[k]["type"]
-            except:
-                raise ValueError(
-                    f"The key in parameters must be exactly 'type'"
+            except KeyError:
+                raise KeyError(
+                    f"The key of {k} parameter must be exactly 'type'"
                 )
+            if self.parameters[k]["type"].lower() not in valid_types:
+                raise ValueError(f"Type {self.parameters[k]["type"]} is invalid\n"
+                                 f"Valide types are: {valid_types}")
         if len(self.returns) != 1:
             raise ValueError(
                 "The returns should conatain only one type"
@@ -28,9 +32,12 @@ class FunctionDefinition(BaseModel):
         try :
             self.returns["type"]
         except:
-            raise ValueError(
+            raise KeyError(
                 f"The key in returns must be exactly 'type'"
             )
+        if self.returns["type"].lower() not in valid_types:
+            raise ValueError(f"Type {self.parameters[k]["type"]} is invalid\n"
+                             f"Valide types are: {valid_types}")
         return self
 
 class Prompt(BaseModel):
