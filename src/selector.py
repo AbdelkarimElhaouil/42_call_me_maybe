@@ -66,9 +66,7 @@ class Selector:
     def __choose_max_token(self, logits: list[float], allowed_tokens_ids: list[int]) -> int:
         candidates = {str(id):logits[id] for id in allowed_tokens_ids}
         max_token = -inf
-        # print("+" * 30, "candidate tokens with their logits", "+" * 30)
         for k in candidates.keys():
-            # print(self.model.decode(int(k)), "=", candidates[k])
             if candidates[k] > max_token:
                 id = k
                 max_token = candidates[k]
@@ -91,6 +89,14 @@ class Selector:
                 res = self.model.decode(generated_ids)
                 return res
 
+    def __extracte_func_params(self, func_name: str) -> dict[str, str]:
+        params = {}
+        for f in self.functions:
+            if f.name == func_name:
+                for param_name in f.parameters:
+                    params.update({param_name:f.parameters[param_name]["type"]})
+                return params
+
 
     def generate_answers(self) -> list[dict[str, str]]:
         result = []
@@ -110,21 +116,12 @@ class Selector:
                 }
             )
             print(f"Result {i}:")
-            print("user prompt:", p)
-            print("function name:", func_name)
-            print("user prompt:", params_values)
+            print("User prompt:", p)
+            print("Function name:", func_name)
+            print("Parameters:", params_values)
             print("\n")
             i += 1
         return result
-
-
-    def __extracte_func_params(self, func_name: str) -> dict[str, str]:
-        params = {}
-        for f in self.functions:
-            if f.name == func_name:
-                for param_name in f.parameters:
-                    params.update({param_name:f.parameters[param_name]["type"]})
-                return params
 
     def __select_params_values(
             self, user_prompt: str, params: dict[str, str]
@@ -175,7 +172,6 @@ class Selector:
 
     def __extract_bool_value(self, prompt_ids: list[int]) -> bool:
         allow_tokens = self.__allowed_tokens["boolean"]["allow"]
-
         logits = self.model.get_logits_from_input_ids(prompt_ids)
         chosen_token = self.__choose_max_token(logits, allow_tokens)
         prompt_ids.append(chosen_token)
@@ -224,23 +220,20 @@ class Selector:
         state = 1
         gen_ids = []
         while True:
-            if  state:
+            if state:
                 allowed = sign_tokens
                 state = 0
             else:
                 allowed = allow_tokens + stop_tokens
             logits = self.model.get_logits_from_input_ids(prompt_ids)
             chosen_token = self.__choose_max_token(logits, allowed)
-            token_decoded = self.model.decode(chosen_token)
             prompt_ids.append(chosen_token)
             if chosen_token in stop_tokens:
                 break
             gen_ids.append(chosen_token)
-
         try:
             val = int(self.model.decode(gen_ids))
         except ValueError as e:
                 print(f"Error: {e}")
                 exit(1)
         return val
-
