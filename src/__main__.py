@@ -1,8 +1,9 @@
+"""Run the main workflow of the function-calling application."""
+
 from .parser import Parser
 from .selector import Selector
 from .utils import dump_result
 from sys import argv
-from pydantic import ValidationError
 
 if __name__ == "__main__":
     try:
