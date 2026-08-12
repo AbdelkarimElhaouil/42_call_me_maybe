@@ -48,7 +48,7 @@ class Selector:
         self.model = Small_LLM_Model()
 
         self.__allowed_tokens: dict[
-            str, dict[str, list[int]] | list[int]
+            str, dict[str, list[int]]
         ] = {
             "integer": {
                 "allow": [
@@ -200,7 +200,7 @@ class Selector:
         """
         prompt = self.__construct_prompt(user_prompt)
         input_ids: list[int] = self.model.encode(prompt).tolist()[0]
-        generated_ids = []
+        generated_ids: list[int] = []
 
         while True:
             allowed_tokens = self.__get_allowed_func_tokens(
@@ -243,10 +243,13 @@ class Selector:
                             param_name: f.parameters[param_name]["type"]
                         }
                     )
+                break
 
-                return params
+        return params
 
-    def generate_answers(self) -> list[dict[str, str]]:
+    def generate_answers(
+            self
+            ) -> list[dict[str, str | dict[str, str | int | float]]]:
         """Process all prompts and generate function-selection results.
 
         Each result contains the original prompt, the selected function
@@ -255,7 +258,7 @@ class Selector:
         Returns:
             A list of dictionaries containing the results for every prompt.
         """
-        result = []
+        result: list[dict[str, str | dict[str, str | int | float | bool]]] = []
         i = 1
 
         for p in self.prompts:
@@ -289,7 +292,7 @@ class Selector:
         self,
         user_prompt: str,
         params: dict[str, str],
-    ) -> dict[str, str]:
+    ) -> dict[str, str | int | float | bool]:
         """Extract parameter values from a user request.
 
         Each parameter is processed according to its declared type.
@@ -310,7 +313,7 @@ class Selector:
         prompt += f"user request: {user_prompt}\n"
 
         prompt_ids: list[int] = self.model.encode(prompt).tolist()[0]
-        result = {}
+        result: dict[str, str | int | float | bool] = {}
 
         for p in params.keys():
             param_type = params[p]
@@ -323,20 +326,20 @@ class Selector:
             )
 
             if param_type == "integer":
-                val = self.__extract_int_value(prompt_ids)
-                result.update({p: val})
+                int_val = self.__extract_int_value(prompt_ids)
+                result.update({p: int_val})
 
             elif param_type == "number":
-                val = self.__extract_float_value(prompt_ids)
-                result.update({p: val})
+                float_val = self.__extract_float_value(prompt_ids)
+                result.update({p: float_val})
 
             elif param_type == "boolean":
-                val = self.__extract_bool_value(prompt_ids)
-                result.update({p: val})
+                bool_val = self.__extract_bool_value(prompt_ids)
+                result.update({p: bool_val})
 
             else:
-                val = self.__extract_str_value(prompt_ids)
-                result.update({p: val})
+                str_val = self.__extract_str_value(prompt_ids)
+                result.update({p: str_val})
 
         return result
 
@@ -355,11 +358,11 @@ class Selector:
         prefix = self.model.encode('"').tolist()[0]
         prompt_ids.extend(prefix)
 
-        gen_ids = []
+        gen_ids: list[int] = []
 
         while True:
             logits = self.model.get_logits_from_input_ids(prompt_ids)
-            chosen_token = argmax(logits)
+            chosen_token = int(argmax(logits))
             token_decoded = self.model.decode(chosen_token)
 
             prompt_ids.append(chosen_token)
@@ -382,7 +385,7 @@ class Selector:
         Returns:
             The extracted boolean value.
         """
-        allow_tokens = self.__allowed_tokens["boolean"]["allow"]
+        allow_tokens: list[int] = self.__allowed_tokens["boolean"]["allow"]
 
         logits = self.model.get_logits_from_input_ids(prompt_ids)
 
@@ -392,10 +395,11 @@ class Selector:
         )
 
         prompt_ids.append(chosen_token)
+        val = self.model.decode(chosen_token)
 
-        return self.model.decode(chosen_token)
+        return val == "true"
 
-    def __extract_float_value(self, prompt_ids: list[int]) -> int:
+    def __extract_float_value(self, prompt_ids: list[int]) -> float:
         """Extract a floating-point number from the model output.
 
         The generated value may contain digits, a decimal point, and a

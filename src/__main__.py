@@ -17,4 +17,4 @@ if __name__ == "__main__":
         result = s.generate_answers()
         dump_result(output_file, result)
     except BaseException as e:
-        print("hchem chwia")
+        print(e)

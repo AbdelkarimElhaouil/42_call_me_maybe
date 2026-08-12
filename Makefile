@@ -1,18 +1,16 @@
 install:
-	uv sync
+	@uv sync
 
 run:
-	uv run -m python3 src
+	@uv run python3 -m src
 
 debug:
-	uv run python3 -m pdb src
+	@uv run python3 -m pdb src
 
 clean:
 	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null; true
 	@find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null; true
 	@echo "cleaned!"
-
-
 
 lint:
 	@echo "running mypy..."
@@ -24,4 +22,4 @@ lint:
 	@echo "running flake8..."
 	@flake8 .
 
-.PHONY: clean
+.PHONY: clean install debug lint run

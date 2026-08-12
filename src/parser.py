@@ -156,7 +156,6 @@ class Parser:
         try:
             with open(path) as file:
                 data = load(file)
-
                 prompts = [
                     Prompt(**prompt)
                     for prompt in data

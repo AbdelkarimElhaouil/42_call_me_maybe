@@ -31,7 +31,6 @@ The main components are:
 
 ---
 
-## Instructions
 
 ### Requirements
 
@@ -95,33 +94,25 @@ A simplified example:
 ```
 
 The prompt file contains the user requests that should be processed.
+## Instructions
 
 ### Execution
 
 Run the project with:
 
 ```bash
-uv run python -m src
+uv run python3 -m src
 ```
 
 The program also accepts custom input, output, and function-definition files:
 
 ```bash
-uv run python -m src \
+uv run python3 -m src \
     --functions_definition data/input/functions_definition.json \
     --input data/input/function_calling_tests.json \
     --output data/output/function_calling_results.json
 ```
 
-The available arguments are:
-
-| Argument                 | Description                                | Default                                     |
-| ------------------------ | ------------------------------------------ | ------------------------------------------- |
-| `--functions_definition` | Path to the function definitions JSON file | `data/input/functions_definition.json`      |
-| `--input`                | Path to the user prompts JSON file         | `data/input/function_calling_tests.json`    |
-| `--output`               | Path where results are written             | `data/output/function_calling_results.json` |
-
----
 
 ## Algorithm Explanation
 
@@ -618,11 +609,8 @@ The resulting output is conceptually:
 
 * **NumPy Documentation** — Reference documentation for NumPy and its numerical operations.
 
-### Language Models and Tokenization
-
-* **Hugging Face Transformers Documentation** — Reference material for transformer-based language models and tokenization.
-* **Attention Is All You Need** — Vaswani et al., the foundational paper introducing the Transformer architecture.
-* **Hugging Face Tokenizers Documentation** — Documentation covering tokenization and token IDs.
+### Articles
+* **https://www.aidancooper.co.uk/constrained-decoding/**
 
 ### AI Usage
 
@@ -636,40 +624,4 @@ AI was used for:
 * Reviewing implementation ideas and identifying potential bugs or inconsistencies.
 * Helping structure this README according to the project's documentation requirements.
 
-AI was **not used to replace the implementation of the project's core algorithm**. The constrained decoding logic, function-selection process, parameter extraction logic, and project structure were developed as part of the project work.
-
-The final implementation and documentation were reviewed and adapted to fit the project's requirements.
-
 ---
-
-## Project Structure
-
-```text
-.
-├── data/
-│   ├── input/
-│   │   ├── functions_definition.json
-│   │   └── function_calling_tests.json
-│   └── output/
-│       └── function_calling_results.json
-│
-├── src/
-│   ├── __main__.py
-│   ├── models.py
-│   ├── parser.py
-│   ├── selector.py
-│   └── utils.py
-│
-├── pyproject.toml
-└── README.md
-```
-
-The main responsibilities are separated between input parsing, data validation, constrained model inference, and result generation.
-
----
-
-## Conclusion
-
-This project demonstrates how a language model can be integrated into a structured function-calling system without relying entirely on free-form text generation.
-
-The central idea is to combine the semantic capabilities of an LLM with **token-level constraints**, allowing the model to make decisions while keeping its output within a predefined and controllable structure.
